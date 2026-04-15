@@ -1,5 +1,37 @@
 __pycache__/
-*.pyc
+*.py[codz]
+*$py.class
+
+# Environments
 .venv/
+venv/
 env/
+ENV/
+
+# Jupyter
 .ipynb_checkpoints/
+
+# Distribution
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Logs & reports
+*.log
+.coverage
+htmlcov/
+.pytest_cache/
+
+# OS / misc
+.env
+.envrc
+
+# Type checkers / cache
+.mypy_cache/
+.pyre/
+.ruff_cache/
+
+# Editors
+.cursorignore
+.cursorindexingignore
