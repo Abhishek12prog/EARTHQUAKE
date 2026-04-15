@@ -1,13 +1,12 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+import pandas as pd
 
 from dashboard_core import (
     inject_global_styles,
     load_model_bundle,
-    prediction_input_frame,
     predict_probabilities,
-    risk_class_name,
 )
 
 st.set_page_config(
@@ -23,13 +22,14 @@ inject_global_styles()
 
 st.title("🌍 Prediction Studio")
 
+# ✅ LOAD MODEL
 model, label_encoder = load_model_bundle()
 
-left, right = st.columns([1.03, 0.97])
+# 🔹 INPUT UI
+left, right = st.columns([1, 1])
 
-# 🔹 LEFT PANEL (INPUTS)
 with left:
-    st.markdown("### Input Parameters")
+    st.subheader("Input Parameters")
 
     latitude = st.slider("Latitude", -90.0, 90.0, 34.05, 0.05)
     longitude = st.slider("Longitude", -180.0, 180.0, -118.25, 0.05)
@@ -40,37 +40,68 @@ with left:
     day = st.slider("Day", 1, 31, 15)
     hour = st.slider("Hour", 0, 23, 14)
 
+    # ✅ FIXED (numeric encoding)
     day_of_week = st.selectbox(
         "Day of Week",
-        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        [
+            (0, "Monday"),
+            (1, "Tuesday"),
+            (2, "Wednesday"),
+            (3, "Thursday"),
+            (4, "Friday"),
+            (5, "Saturday"),
+            (6, "Sunday"),
+        ],
+        format_func=lambda x: x[1]
+    )[0]
+
+# 🔹 CREATE MODEL INPUT (VERY IMPORTANT)
+sample_input = pd.DataFrame([{
+    "latitude": latitude,
+    "longitude": longitude,
+    "depth": depth,
+    "year": year,
+    "month": month,
+    "day": day,
+    "hour": hour,
+    "day_of_week": day_of_week
+}])
+
+# 🔍 DEBUG (remove later if you want)
+# st.write(sample_input)
+# st.write(sample_input.dtypes)
+
+# 🔹 PREDICTION
+try:
+    predicted_risk, probability_df = predict_probabilities(
+        model, label_encoder, sample_input
     )
 
-# 🔹 PREP INPUT
-sample_input = prediction_input_frame(
-    latitude, longitude, depth, year, month, day, hour, day_of_week
-)
+    with right:
+        st.subheader("Prediction Result")
 
-predicted_risk, probability_df = predict_probabilities(
-    model, label_encoder, sample_input
-)
+        st.success(f"Predicted Risk: {predicted_risk}")
 
-# 🔹 RIGHT PANEL (OUTPUT)
-with right:
-    st.markdown("### Prediction Result")
+        # 📊 CHART
+        palette = {"Low": "green", "Medium": "orange", "High": "red"}
 
-    st.success(f"Predicted Risk: {predicted_risk}")
+        fig, ax = plt.subplots()
+        sns.barplot(
+            data=probability_df,
+            x="Probability",
+            y="Risk Level",
+            palette=palette,
+            ax=ax
+        )
 
-    palette = {"Low": "green", "Medium": "orange", "High": "red"}
+        ax.set_xlim(0, 1)
+        st.pyplot(fig)
 
-    fig, ax = plt.subplots()
-    sns.barplot(
-        data=probability_df,
-        x="Probability",
-        y="Risk Level",
-        palette=palette,
-        ax=ax
-    )
+        # 📋 TABLE
+        display_df = probability_df.copy()
+        display_df["Probability"] = display_df["Probability"].map(lambda x: f"{x:.2%}")
+        st.dataframe(display_df)
 
-    st.pyplot(fig)
-
-    st.dataframe(probability_df)
+except Exception as e:
+    st.error("Prediction failed. Please retrain the model or check input format.")
+    st.exception(e)
