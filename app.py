@@ -69,11 +69,3 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.write("### Welcome 👋")
-
-st.markdown("""
-- ⚙️ Training Studio  
-- 🔮 Prediction Studio  
-- 📊 Data Analytics  
-- 🧠 Model Performance  
-""")
